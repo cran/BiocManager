@@ -152,3 +152,26 @@ test_that("packages can be written", {
     install()
     Sys.chmod(locked, mode="0700")
 })
+
+context("install(version =, ask=...) works")
+
+test_that(".install_ask_up_or_down_grade() works non-interactively", {
+    if (interactive())
+        return(TRUE)
+    expect_equal(
+        FALSE,
+        .install_ask_up_or_down_grade("xx", npkgs = 1L, cmp = 1L, ask = TRUE)
+    )
+    expect_equal(
+        TRUE,
+        .install_ask_up_or_down_grade("xx", npkgs = 1L, cmp = 1L, ask = FALSE)
+    )
+})
+
+test_that("install() fails with different version (non-interactive)", {
+    map <- BiocManager:::.version_map()
+    incr <- 1L
+    version <-
+        package_version(paste(version()$major, version()$minor + incr, sep="."))
+    expect_error(install(version = version))
+})

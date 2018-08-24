@@ -130,12 +130,17 @@
     TRUE
 }
 
+.install_n_invalid_pkgs <- function(valid) {
+    sum(nrow(valid$too_new), nrow(valid$out_of_date))
+}
+
 .install_ask_up_or_down_grade <-
-    function(version, cmp)
+    function(version, npkgs, cmp, ask)
 {
     action <- if (cmp < 0) "Downgrade" else "Upgrade"
-    txt <- sprintf("%s Bioconductor to version '%s'? [y/n]: ", action, version)
-    .getAnswer(txt, allowed = c("y", "Y", "n", "N")) == "y"
+    txt <- sprintf("%s %d packages to Bioconductor version '%s'? [y/n]: ",
+        action, npkgs, version)
+    !ask || .getAnswer(txt, allowed = c("y", "Y", "n", "N")) == "y"
 }
 
 .install <-
@@ -191,24 +196,26 @@
 }
 
 .install_updated_version <-
-    function(update, repos, ...)
+    function(valid, update, repos, ask, ...)
 {
-    valid <- valid()
-
     pkgs <- c(rownames(valid$too_new), rownames(valid$out_of_date))
     if (is.null(pkgs) || !update)
         return(pkgs)
 
-    answer <- .getAnswer(
-        sprintf(
-            "reinstall %d packages for Bioconductor version %s? [y/n]: ",
-            length(pkgs), version()
-        ),
-        allowed = c("y", "Y", "n", "N")
-    )
-    if (answer == "y")
-        .install(pkgs, repos, ...)
+    if (ask) {
+        answer <- .getAnswer(
+            sprintf(
+                "reinstall %d packages for Bioconductor version %s? [y/n]: ",
+                length(pkgs), version()
+            ),
+            allowed = c("y", "Y", "n", "N")
+        )
 
+        if (answer == "n")
+            return(pkgs)
+    }
+
+    .install(pkgs, repos, ...)
     pkgs
 }
 
@@ -324,15 +331,28 @@ install <-
     )
     version <- .version_validate(version)
 
-    if (!"BiocVersion" %in% rownames(installed.packages())) {
+    inst <- installed.packages()
+    if (!"BiocVersion" %in% rownames(inst)) {
         pkgs <- unique(c("BiocVersion", pkgs))
     }
 
     cmp <- .version_compare(version, version())
+    action <- if (cmp < 0) "Downgrade" else "Upgrade"
+    repos <- repositories(site_repository, version = version)
+
     if (cmp != 0L) {
-        .install_ask_up_or_down_grade(version, cmp) ||
-            .stop("Bioconductor version not changed")
         pkgs <- unique(c("BiocVersion", pkgs))
+        valist <- .valid(version = version)
+        npkgs <- .install_n_invalid_pkgs(valist)
+        if (!length(pkgs)-1L) {
+            .install_ask_up_or_down_grade(version, npkgs, cmp, ask) ||
+                .stop("Bioconductor version not changed")
+        } else {
+            fmt <- paste0(c(
+                "To use Bioconductor version '%s', first %s %d packages with",
+                "\n    \"BiocManager::install(version = '%s')\""))
+            .stop(fmt, version, tolower(action), npkgs, version)
+        }
     }
 
     .message(
@@ -341,12 +361,11 @@ install <-
         sub(" version", "", R.version.string)
     )
 
-    repos <- repositories(site_repository, version = version)
     pkgs <- .install(pkgs, repos = repos, ...)
     if (update && cmp == 0L) {
         .install_update(repos, ask, ...)
     } else if (cmp != 0L) {
-        .install_updated_version(update, repos, ...)
+        .install_updated_version(valist, update, repos, ask, ...)
     }
 
     invisible(pkgs)
