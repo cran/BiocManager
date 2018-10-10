@@ -2,6 +2,7 @@
     function()
 {
     repos <- getOption("repos")
+
     ## Microsoft R Open is shipped with getOption("repos")[["CRAN"]]
     ## pointing to a *snapshot* of CRAN (e.g.
     ## https://mran.microsoft.com/snapshot/2017-05-01), and not to a
@@ -12,11 +13,16 @@
     ## Open.  However, since old versions of BioC are frozen, it would
     ## probably make sense to point to a *snapshot* of CRAN instead of
     ## a CRAN mirror that is current.
-    cran <- repos[["CRAN"]]
+    name_is_CRAN <- names(repos) == "CRAN"
+    if (length(name_is_CRAN) == 0L)     # NULL names
+        name_is_CRAN <- logical(length(repos))
     snapshot_pattern <- "/snapshot/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
-    if (cran == "@CRAN@" || grepl(snapshot_pattern, cran))
-        repos[["CRAN"]] <- "https://cran.rstudio.com"
+    rename <- name_is_CRAN & grepl(snapshot_pattern, repos)
 
+    ## update "@CRAN@" to default
+    rename <- rename | (repos == "@CRAN@")
+
+    repos[rename] <- "https://cran.rstudio.com"
     repos
 }
 
@@ -31,6 +37,16 @@
     )
     bioc_repos <- paste(mirror, "packages", version, paths, sep="/")
     setNames(bioc_repos, names(paths))
+}
+
+.repositories <-
+    function(site_repository, version)
+{
+    base <- .repositories_base()
+    bioc <- .repositories_bioc(version)
+
+    repos <- c(site_repository = site_repository, bioc, base)
+    repos[!duplicated(names(repos))]
 }
 
 #' Display current Bioconductor and CRAN repositories.
@@ -80,10 +96,5 @@ repositories <-
         is.character(site_repository), !anyNA(site_repository)
     )
     version <- .version_validate(version)
-
-    base <- .repositories_base()
-    bioc <- .repositories_bioc(version)
-
-    repos <- c(site_repository = site_repository, bioc, base)
-    repos[!duplicated(names(repos))]
+    .repositories(site_repository, version)
 }

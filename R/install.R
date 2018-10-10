@@ -131,7 +131,10 @@
 }
 
 .install_n_invalid_pkgs <- function(valid) {
-    sum(nrow(valid$too_new), nrow(valid$out_of_date))
+    if (isTRUE(valid))
+        0L
+    else
+        sum(nrow(valid$too_new), nrow(valid$out_of_date))
 }
 
 .install_ask_up_or_down_grade <-
@@ -196,24 +199,15 @@
 }
 
 .install_updated_version <-
-    function(valid, update, repos, ask, ...)
+    function(valid, update, repos, ...)
 {
-    pkgs <- c(rownames(valid$too_new), rownames(valid$out_of_date))
+    if (isTRUE(valid))
+        return(valid)
+    else
+        pkgs <- c(rownames(valid$too_new), rownames(valid$out_of_date))
+
     if (is.null(pkgs) || !update)
         return(pkgs)
-
-    if (ask) {
-        answer <- .getAnswer(
-            sprintf(
-                "reinstall %d packages for Bioconductor version %s? [y/n]: ",
-                length(pkgs), version()
-            ),
-            allowed = c("y", "Y", "n", "N")
-        )
-
-        if (answer == "n")
-            return(pkgs)
-    }
 
     .install(pkgs, repos, ...)
     pkgs
@@ -287,9 +281,11 @@
 #' `BiocManager::\link{repositories}()` returns the _Bioconductor_ and
 #' CRAN repositories used by `install()`.
 #'
-#' `\link{install.packages}()` installs the packages themselves.
+#' `\link{install.packages}()` installs the packages themselves (used by
+#' `BiocManager::install` internally).
 #'
-#' `\link{update.packages}()` updates all installed packages.
+#' `\link{update.packages}()` updates all installed packages (used by
+#' `BiocManager::install` internally).
 #'
 #' `\link{chooseBioCmirror}()` allows choice of a mirror from all
 #' public _Bioconductor_ mirrors.
@@ -338,12 +334,12 @@ install <-
 
     cmp <- .version_compare(version, version())
     action <- if (cmp < 0) "Downgrade" else "Upgrade"
-    repos <- repositories(site_repository, version = version)
+    repos <- .repositories(site_repository, version = version)
 
     if (cmp != 0L) {
         pkgs <- unique(c("BiocVersion", pkgs))
-        valist <- .valid(version = version)
-        npkgs <- .install_n_invalid_pkgs(valist)
+        valist <- .valid(site_repository = site_repository, version = version)
+        npkgs <- .install_n_invalid_pkgs(valist) + length(pkgs)
         if (!length(pkgs)-1L) {
             .install_ask_up_or_down_grade(version, npkgs, cmp, ask) ||
                 .stop("Bioconductor version not changed")
@@ -365,7 +361,7 @@ install <-
     if (update && cmp == 0L) {
         .install_update(repos, ask, ...)
     } else if (cmp != 0L) {
-        .install_updated_version(valist, update, repos, ask, ...)
+        .install_updated_version(valist, update, repos, ...)
     }
 
     invisible(pkgs)

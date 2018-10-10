@@ -43,3 +43,15 @@
     warning(.msg(...), call.=call., immediate.=immediate.)
     invisible(TRUE)
 }
+
+isDevel <-
+    function()
+{
+    version() == .version_bioc("devel")
+}
+
+isRelease <-
+    function()
+{
+    version() == .version_bioc("release")
+}

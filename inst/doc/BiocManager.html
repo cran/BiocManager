@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2018-08-22" />
+<meta name="date" content="2018-10-10" />
 
 <title>Installing and Managing Bioconductor Packages</title>
 
@@ -565,7 +565,7 @@ $(document).ready(function () {
 <h1 class="title toc-ignore">Installing and Managing <em>Bioconductor</em> Packages</h1>
 <p class="author-name">Marcel Ramos<span class="affil-mark">1</span> and Martin Morgan<span class="affil-mark">1</span></p>
 <p class="author-affiliation"><span class="affil-mark">1</span>Roswell Park Comprehensive Cancer Center, Buffalo, NY</p>
-<h4 class="date"><em>22 August 2018</em></h4>
+<h4 class="date"><em>10 October 2018</em></h4>
 
 </div>
 
@@ -610,7 +610,7 @@ use.</p>
 <code>valid()</code> to identify packages that are out-of-date or from unexpected
 versions.</p>
 <pre class="r"><code>BiocManager::valid()</code></pre>
-<pre><code>## Warning: 1 packages out-of-date; 1 packages too new</code></pre>
+<pre><code>## Warning: 17 packages out-of-date; 1 packages too new</code></pre>
 <pre><code>## 
 ## * sessionInfo()
 ## 
@@ -637,22 +637,25 @@ versions.</p>
 ## [1] BiocStyle_2.9.6
 ## 
 ## loaded via a namespace (and not attached):
-##  [1] Rcpp_0.12.18       bookdown_0.7       digest_0.6.16     
+##  [1] Rcpp_0.12.19       bookdown_0.7       digest_0.6.17     
 ##  [4] rprojroot_1.3-2    backports_1.1.2    magrittr_1.5      
 ##  [7] evaluate_0.11      stringi_1.2.4      rmarkdown_1.10    
 ## [10] tools_3.5.0        stringr_1.3.1      xfun_0.3          
-## [13] yaml_2.2.0         compiler_3.5.0     BiocManager_1.30.2
+## [13] yaml_2.2.0         compiler_3.5.0     BiocManager_1.30.3
 ## [16] htmltools_0.3.6    knitr_1.20        
 ## 
 ## Bioconductor version '3.8'
 ## 
-##   * 1 packages out-of-date
+##   * 17 packages out-of-date
 ##   * 1 packages too new
 ## 
 ## create a valid installation with
 ## 
 ##   BiocManager::install(c(
-##     &quot;BiocManager&quot;, &quot;MSnbase&quot;
+##     &quot;BiocCheck&quot;, &quot;BiocManager&quot;, &quot;BiocNeighbors&quot;, &quot;BiocPkgTools&quot;,
+##     &quot;InteractionSet&quot;, &quot;MultiAssayExperiment&quot;, &quot;S4Vectors&quot;, &quot;SeqArray&quot;,
+##     &quot;SingleCellExperiment&quot;, &quot;TCGAutils&quot;, &quot;beachmat&quot;, &quot;digest&quot;, &quot;evaluate&quot;,
+##     &quot;graph&quot;, &quot;microbenchmark&quot;, &quot;missMethyl&quot;, &quot;scater&quot;, &quot;scran&quot;
 ##   ), update = TRUE, ask = FALSE)
 ## 
 ## more details: BiocManager::valid()$too_new, BiocManager::valid()$out_of_date</code></pre>
@@ -677,7 +680,7 @@ discovered with <code>available()</code>; the first argument can be used to
 filter package names based on a regular expression, e.g., ‘BSgenome’ package available for <em>Homo sapiens</em></p>
 <pre class="r"><code>avail &lt;- BiocManager::available()
 length(avail)</code></pre>
-<pre><code>## [1] 15799</code></pre>
+<pre><code>## [1] 16077</code></pre>
 <pre class="r"><code>BiocManager::available(&quot;BSgenome.Hsapiens&quot;)</code></pre>
 <pre><code>##  [1] &quot;BSgenome.Hsapiens.1000genomes.hs37d5&quot;
 ##  [2] &quot;BSgenome.Hsapiens.NCBI.GRCh38&quot;       
