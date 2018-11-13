@@ -78,6 +78,16 @@ test_that(".version_validity_online_check() works", {
     })
 })
 
+test_that(".version_validity('devel') works", {
+    devel <- .version_bioc("devel")
+    if (version() == devel) {
+        expect_true(.version_validity("devel"))
+    } else {
+        test <- paste0("Bioconductor version '", devel, "' requires R version")
+        expect_true(startsWith(.version_validity("devel"), test))
+    }
+})
+
 test_that(".version_validity() and BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS work",{
     withr::with_options(list(BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS=FALSE), {
         expect_warning({
@@ -108,4 +118,23 @@ test_that(".version_map_get() and BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS work",{
         value <- .version_map_get()
         expect_identical(value, .VERSION_MAP_SENTINEL)
     })
+})
+
+test_that(".version_map_get() falls back to http", {
+    ## better test ideas welcome...
+    url <- "https://httpbin.org/status/404"
+    msgs <- list()
+    result <- withCallingHandlers({
+        .version_map_get(url)
+    }, warning = function(w) {
+        msgs <<- c(msgs, list(w))
+        invokeRestart("muffleWarning")
+    })
+    ## did we generate warnings and eventually fail gracefully?
+    expect_identical(length(msgs), 2L)
+    expect_true(all(vapply(msgs, is, logical(1), "simpleWarning")))
+    msgs <- vapply(msgs, conditionMessage, character(1))
+    expect_identical(sum(grepl("https://httpbin.org", msgs)), 1L)
+    expect_identical(sum(grepl("http://httpbin.org", msgs)), 1L)
+    expect_identical(result, .VERSION_MAP_SENTINEL)
 })

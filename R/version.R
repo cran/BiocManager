@@ -48,16 +48,20 @@
 }
 
 .version_map_get <-
-    function()
+    function(config = NULL)
 {
     if (!.version_validity_online_check()) {
         return(.VERSION_MAP_SENTINEL)
     }
 
-    config <- "https://bioconductor.org/config.yaml"
-    txt <- suppressWarnings(tryCatch({
-        readLines(config)
-    }, error = identity))
+    if (is.null(config))
+        config <- "https://bioconductor.org/config.yaml"
+
+    txt <- tryCatch(readLines(config), error = identity)
+    if (inherits(txt, "error") && startsWith(config, "https://")) {
+        config <- sub("https", "http", config)
+        txt <- tryCatch(readLines(config), error = identity)
+    }
     if (inherits(txt, "error"))
         return(.VERSION_MAP_SENTINEL)
 
@@ -138,11 +142,12 @@
         ))
 
     required <- map$R[map$Bioc == version]
-    if (!getRversion()[, 1:2] %in% required)
+    if (!getRversion()[, 1:2] %in% required) {
         return(sprintf(
             "Bioconductor version '%s' requires R version '%s'; %s",
-            version, required, .VERSION_HELP
+            version, head(required, 1), .VERSION_HELP
         ))
+    }
 
     TRUE
 }
@@ -156,7 +161,7 @@
 
     r_version <- getRversion()[, 1:2]
     status <- map$BiocStatus[map$Bioc == version & map$R == r_version]
-    if (status == "future")
+    if (identical(status, "future"))
         return(sprintf(
             "Bioconductor does not yet formally support R version '%s'",
             r_version
