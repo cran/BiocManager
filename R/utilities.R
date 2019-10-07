@@ -1,3 +1,10 @@
+.is_CRAN_check <-
+    function()
+{
+    opt <- getOption("BIOCMANAGER_CRANCHECK_BEHAVIOR", TRUE)
+    opt && any(grepl("_CRAN_", names(Sys.getenv())))
+}
+
 .getAnswer <- function(msg, allowed)
 {
     if (interactive()) {
@@ -15,6 +22,12 @@
 
 .sQuote <- function(x)
     sprintf("'%s'", as.character(x))
+
+.url_exists <-
+    function(url)
+{
+    identical(length(.inet_readChar(url, 1L)), 1L)
+}
 
 .msg <-
     function(fmt, ..., width=getOption("width"))

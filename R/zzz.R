@@ -1,4 +1,4 @@
-.onAttach <-
+.onLoad <-
     function(libname, pkgname)
 {
     if (!interactive())
@@ -11,7 +11,7 @@
     }
 
     valid <- .version_validity(version)
-    isTRUE(valid) || .warning(valid)
+    isTRUE(valid) || ifelse(.is_CRAN_check(), .message(valid), .stop(valid))
 
     fmt <- paste0(
         "Bioconductor version %s (BiocManager %s), ",
@@ -20,7 +20,8 @@
     .message(fmt, version, packageVersion("BiocManager"))
 
     txt <- .version_is_not_future(version)
-    isTRUE(txt) || .message(txt)
+    isTRUE(txt) || identical(txt, .VERSION_MAP_UNABLE_TO_VALIDATE) ||
+        .message(txt)
 
     recommend <- .version_recommend(version)
     isTRUE(recommend) || .message(recommend)

@@ -68,7 +68,7 @@
     if (!"remotes" %in% rownames(installed.packages(lib.loc))) {
         if (is.null(lib.loc))
             lib.loc <- .libPaths()
-        stop(
+        .stop(
             "package 'remotes' not installed in library path(s)",
             "\n    ", paste(lib.loc, collapse="\n    "),
             "\ninstall with 'install(\"remotes\")'",
@@ -79,7 +79,7 @@
     tryCatch({
         loadNamespace("remotes", lib.loc)
     }, error=function(e) {
-        stop(
+        .stop(
             "'loadNamespace(\"remotes\")' failed:",
             "\n    ", conditionMessage(e)
         )
@@ -95,7 +95,7 @@
     if (length(doing)) {
         pkgNames <- paste(.sQuote(doing), collapse=", ")
         .message("Installing package(s) %s", pkgNames)
-        install.packages(pkgs = doing, lib = lib, repos = repos, ...)
+        .inet_install.packages(pkgs = doing, lib = lib, repos = repos, ...)
     }
     setdiff(pkgs, doing)
 }
@@ -167,9 +167,9 @@
 }
 
 .install_update <-
-    function(repos, ask, lib.loc = NULL, instlib = NULL, checkBuilt = TRUE, ...)
+    function(repos, ask, lib.loc = NULL, instlib = NULL, checkBuilt, ...)
 {
-    old_pkgs <- old.packages(lib.loc, repos, checkBuilt = checkBuilt)
+    old_pkgs <- .inet_old.packages(lib.loc, repos, checkBuilt = checkBuilt)
     if (is.null(old_pkgs))
         return()
 
@@ -193,7 +193,7 @@
         ask <- answer == "s"
     }
 
-    update.packages(
+    .inet_update.packages(
         lib.loc, repos, oldPkgs = old_pkgs, ask = ask, instlib = instlib
     )
 }
@@ -271,6 +271,9 @@
 #'     prompting, to pick packages to update, or to cancel updating
 #'     (in a non-interactive session, no packages will be updated
 #'     unless `ask = FALSE`).
+#' @param checkBuilt `logical(1)`. If `TRUE` a package built under an
+#'     earlier major.minor version of R (e.g., 3.4) is considered to
+#'     be old.
 #' @param version `character(1)` _Bioconductor_ version to install,
 #'     e.g., `version = "3.8"`. The special symbol `version = "devel"`
 #'     installs the current 'development' version.
@@ -314,7 +317,8 @@
 #' @export
 install <-
     function(pkgs = character(), ..., site_repository = character(),
-        update = TRUE, ask = TRUE, version = BiocManager::version())
+        update = TRUE, ask = TRUE, checkBuilt = FALSE,
+        version = BiocManager::version())
 {
     stopifnot(
         is.character(pkgs), !anyNA(pkgs),
@@ -323,6 +327,7 @@ install <-
         is.character(site_repository), !any(is.na(site_repository)),
         is.logical(update), length(update) == 1L, !is.na(update),
         is.logical(ask), length(ask) == 1L, !is.na(ask),
+        is.logical(checkBuilt), length(checkBuilt) == 1L, !is.na(checkBuilt),
         length(version) == 1L || identical(version, .VERSION_SENTINEL)
     )
     version <- .version_validate(version)
@@ -338,11 +343,18 @@ install <-
 
     if (cmp != 0L) {
         pkgs <- unique(c("BiocVersion", pkgs))
-        valist <- .valid(site_repository = site_repository, version = version)
+        valist <- .valid(
+            site_repository = site_repository, version = version,
+            checkBuilt = checkBuilt
+        )
         npkgs <- .install_n_invalid_pkgs(valist) + length(pkgs)
         if (!length(pkgs)-1L) {
             .install_ask_up_or_down_grade(version, npkgs, cmp, ask) ||
-                .stop("Bioconductor version not changed")
+                .stop(paste0(
+                    "Bioconductor version not changed by 'install()'",
+                    if (!interactive() && isTRUE(ask))
+                        "; in non-interactive sessions use 'ask = FALSE'"
+                ))
         } else {
             fmt <- paste0(c(
                 "To use Bioconductor version '%s', first %s %d packages with",
@@ -359,7 +371,7 @@ install <-
 
     pkgs <- .install(pkgs, repos = repos, ...)
     if (update && cmp == 0L) {
-        .install_update(repos, ask, ...)
+        .install_update(repos, ask, checkBuilt = checkBuilt, ...)
     } else if (cmp != 0L) {
         .install_updated_version(valist, update, repos, ...)
     }

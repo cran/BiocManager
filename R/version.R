@@ -10,6 +10,9 @@
     "Bioconductor online version validation disabled;
     see ?BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS"
 
+.LEGACY_INSTALL_CMD <-
+    "source(\"https://bioconductor.org/biocLite.R\")"
+
 .VERSION_SENTINEL <- local({
     version <- package_version(list())
     class(version) <- c("unknown_version", class(version))
@@ -36,32 +39,50 @@
     else 0L
 }
 
+.VERSION_MAP <- local({
+    WARN_NO_ONLINE_CONFIG <- TRUE
+    environment()
+})
+
 .version_validity_online_check <-
     function()
 {
-    opt <- getOption("BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS")
-    if (is.null(opt)) {
-        opt <- Sys.getenv("BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS", TRUE)
-    }
+    opt <- Sys.getenv("BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS", TRUE)
+    opt <- getOption("BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS", opt)
+    opt <- isTRUE(as.logical(opt))
 
-    isTRUE(as.logical(opt))
+    if (.VERSION_MAP$WARN_NO_ONLINE_CONFIG && !opt) {
+        .VERSION_MAP$WARN_NO_ONLINE_CONFIG <- FALSE
+        .warning(.NO_ONLINE_VERSION_DIAGNOSIS)
+    }
+    opt
 }
 
-.version_map_get <-
-    function(config = NULL)
+.version_map_get_online_config <-
+    function(config)
 {
-    if (!.version_validity_online_check()) {
-        return(.VERSION_MAP_SENTINEL)
-    }
-
-    if (is.null(config))
-        config <- "https://bioconductor.org/config.yaml"
-
-    txt <- tryCatch(readLines(config), error = identity)
+    txt <- tryCatch(.inet_readLines(config), error = identity)
     if (inherits(txt, "error") && startsWith(config, "https://")) {
         config <- sub("https", "http", config)
-        txt <- tryCatch(readLines(config), error = identity)
+        txt <- tryCatch(.inet_readLines(config), error = identity)
     }
+    txt
+}
+
+.version_map_get_online <-
+    function(config)
+{
+    toggle_warning <- FALSE
+    withCallingHandlers({
+        txt <- .version_map_get_online_config(config)
+    }, warning = function(w) {
+        if (!.VERSION_MAP$WARN_NO_ONLINE_CONFIG)
+            invokeRestart("muffleWarning")
+        toggle_warning <<- TRUE
+    })
+    if (toggle_warning)
+        .VERSION_MAP$WARN_NO_ONLINE_CONFIG <- FALSE
+
     if (inherits(txt, "error"))
         return(.VERSION_MAP_SENTINEL)
 
@@ -91,7 +112,12 @@
         bioc, max(bioc)
         ## package_version(paste(unlist(max(bioc)) + 0:1, collapse = "."))
     )
-    r <- c(r, package_version(paste(unlist(max(r)) + 0:1, collapse = ".")))
+    if (max(r) == package_version("3.6")) {
+        future_r <- package_version("4.0")
+    } else {
+        future_r <- package_version(paste(unlist(max(r)) + 0:1, collapse = "."))
+    }
+    r <- c(r, future_r)
     status <- c(status, "future")
 
     rbind(.VERSION_MAP_SENTINEL, data.frame(
@@ -101,6 +127,39 @@
             levels = c("out-of-date", "release", "devel", "future")
         )
     ))
+}
+
+.version_map_get_offline <-
+    function()
+{
+    bioc <- tryCatch({
+        packageVersion("BiocVersion")[, 1:2]
+    }, error = identity)
+    if (inherits(bioc, "error"))
+        return(.VERSION_MAP_SENTINEL)
+
+    r <- package_version(R.Version())[,1:2]
+
+    status <- c("out-of-date", "release", "devel", "future")
+    rbind(.VERSION_MAP_SENTINEL, data.frame(
+        Bioc = bioc, R = r,
+        BiocStatus = factor(
+            NA,
+            levels = c("out-of-date", "release", "devel", "future")
+        )
+    ))
+}
+
+.version_map_get <-
+    function(config = NULL)
+{
+    if (!.version_validity_online_check())
+        .version_map_get_offline()
+    else {
+        if (is.null(config))
+            config <- "https://bioconductor.org/config.yaml"
+        .version_map_get_online(config)
+    }
 }
 
 .version_map <- local({
@@ -115,11 +174,6 @@
 .version_validity <-
     function(version)
 {
-    if (!.version_validity_online_check()) {
-        .warning(.NO_ONLINE_VERSION_DIAGNOSIS)
-        version <- .local_version()
-    }
-
     if (identical(version, "devel"))
         version <- .version_bioc("devel")
     version <- .package_version(version)
@@ -178,21 +232,36 @@
     version <- .package_version(version)
 
     txt <- .version_validity(version)
-    isTRUE(txt) || .stop(txt)
+    isTRUE(txt) || ifelse(.is_CRAN_check(), .message(txt), .stop(txt))
 
     version
+}
+
+.r_version_lt_350 <-
+    function()
+{
+    getRversion() < package_version("3.5.0")
 }
 
 .version_recommend <-
     function(version)
 {
     release <- .version_bioc("release")
-    if (version < release) {
-        return(sprintf(
-            "Bioconductor version '%s' is out-of-date; the current release
-             version '%s' is available with R version '%s'; %s",
-            version, release, .version_R("release"), .VERSION_HELP
-        ))
+    if (is.package_version(release) && version < release) {
+        if (.r_version_lt_350())
+            return(sprintf(
+                "Bioconductor version '%s' is out-of-date; BiocManager does
+                 not support R version '%s'. For older installations of
+                 Bioconductor, use '%s' and refer to the 'BiocInstaller'
+                 vignette on the Bioconductor website",
+                version, getRversion(), .LEGACY_INSTALL_CMD
+            ))
+        else
+            return(sprintf(
+                "Bioconductor version '%s' is out-of-date; the current release
+                 version '%s' is available with R version '%s'; %s",
+                version, release, .version_R("release"), .VERSION_HELP
+            ))
     }
 
     TRUE
@@ -225,7 +294,10 @@
     if (identical(map, .VERSION_MAP_SENTINEL))
         return(.VERSION_MAP_UNABLE_TO_VALIDATE)
 
-    map$Bioc[map$BiocStatus == type]
+    version <- map$Bioc[map$BiocStatus == type]
+    if (is.na(version))
+        version <- .VERSION_UNKNOWN
+    version
 }
 
 .version_R <-
@@ -241,10 +313,11 @@
 .local_version <-
     function()
 {
-    if ("BiocVersion" %in% rownames(installed.packages()))
+    tryCatch({
         packageVersion("BiocVersion")[, 1:2]
-    else
+    }, error = function(e) {
         .VERSION_SENTINEL
+    })
 }
 
 #' Version of Bioconductor currently in use.
@@ -269,10 +342,11 @@
 version <-
     function()
 {
-    if ("BiocVersion" %in% rownames(installed.packages()))
+    tryCatch({
         packageVersion("BiocVersion")[, 1:2]
-    else
+    }, error = function(e) {
         .version_choose_best()
+    })
 }
 
 .package_version <-

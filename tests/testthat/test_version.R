@@ -1,5 +1,7 @@
 context("version()")
 
+inst_pkgs <- installed.packages()
+
 test_that("version is package_version class", {
     expect_s3_class(version(), "package_version")
     expect_s3_class(version(), "numeric_version")
@@ -11,6 +13,9 @@ test_that("version has two components", {
 })
 
 test_that(".version_validate() validates version", {
+    if (any(grepl("_CRAN_", names(Sys.getenv()))))
+        skip("not robust to CRAN internet policy")
+
     .version_validate <- BiocManager:::.version_validate
 
     expect_error(
@@ -30,9 +35,11 @@ test_that(".version_validate() validates version", {
 })
 
 test_that(".version_recommend() recommends update", {
+    if (any(grepl("_CRAN_", names(Sys.getenv()))))
+        skip("not robust to CRAN internet policy")
     expect_true(startsWith(
         .version_recommend("2.0"),
-        "Bioconductor version '2.0' is out-of-date; the current release"
+        "Bioconductor version '2.0' is out-of-date"
     ))
 })
 
@@ -48,7 +55,9 @@ test_that(".version_validity_online_check() works", {
         })
 
         withr::with_envvar(c(BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS=FALSE), {
-            expect_identical(.version_validity_online_check(), FALSE)
+            suppressWarnings({
+                expect_identical(.version_validity_online_check(), FALSE)
+            })
         })
     })
 
@@ -79,8 +88,13 @@ test_that(".version_validity_online_check() works", {
 })
 
 test_that(".version_validity('devel') works", {
+    if (any(grepl("_CRAN_", names(Sys.getenv()))))
+        skip("not robust to CRAN internet policy")
     devel <- .version_bioc("devel")
-    if (version() == devel) {
+    R_version <- getRversion()[,1:2]
+    map <- .version_map()
+    R_ok <- map$R[map$Bioc == devel]
+    if (identical(version(), devel) || R_version %in% R_ok) {
         expect_true(.version_validity("devel"))
     } else {
         test <- paste0("Bioconductor version '", devel, "' requires R version")
@@ -90,25 +104,19 @@ test_that(".version_validity('devel') works", {
 
 test_that(".version_validity() and BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS work",{
     withr::with_options(list(BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS=FALSE), {
-        expect_warning({
-            value <- .version_validity("1.2")
-        }, "Bioconductor online version validation disabled")
-        if ("BiocVersion" %in% rownames(installed.packages()))
-            expect_identical(value, TRUE)
-        else
-            expect_identical(value, .VERSION_MAP_UNABLE_TO_VALIDATE)
+        expect_match(
+            .version_validity("1.2"),
+            "unknown Bioconductor version '1.2'; .*"
+        )
     })
 })
 
 test_that(".version_validate() and BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS work",{
     withr::with_options(list(BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS=FALSE), {
-        if ("BiocVersion" %in% rownames(installed.packages()))
-            expect_identical(.version_validate("1.2"), package_version("1.2"))
-        else
-            expect_error(
-                .version_validate("1.2"),
-                .VERSION_MAP_UNABLE_TO_VALIDATE
-            )
+        expect_error(
+            .version_validate("1.2"),
+            "unknown Bioconductor version '1.2'; .*"
+        )
     })
 })
 
@@ -116,11 +124,15 @@ test_that(".version_validate() and BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS work",{
 test_that(".version_map_get() and BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS work",{
     withr::with_options(list(BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS=FALSE), {
         value <- .version_map_get()
-        expect_identical(value, .VERSION_MAP_SENTINEL)
+        if ("BiocVersion" %in% rownames(inst_pkgs))
+            expect_identical(packageVersion("BiocVersion")[, 1:2], value[1, 1])
+        else
+            expect_identical(value, .VERSION_MAP_SENTINEL)
     })
 })
 
 test_that(".version_map_get() falls back to http", {
+    .VERSION_MAP$WARN_NO_ONLINE_CONFIG <- TRUE
     ## better test ideas welcome...
     url <- "https://httpbin.org/status/404"
     msgs <- list()
@@ -137,4 +149,32 @@ test_that(".version_map_get() falls back to http", {
     expect_identical(sum(grepl("https://httpbin.org", msgs)), 1L)
     expect_identical(sum(grepl("http://httpbin.org", msgs)), 1L)
     expect_identical(result, .VERSION_MAP_SENTINEL)
+})
+
+test_that("BiocVersion version matches with package", {
+    if (!"BiocVersion" %in% rownames(installed.packages()))
+        skip("BiocVersion not installed")
+
+    R_version <- getRversion()
+    bioc_version <- packageVersion("BiocVersion")[, 1:2]
+
+    test <- R_version == "4.0.0" &&
+        bioc_version == "3.9" &&
+        any(grepl("_CRAN_", names(Sys.getenv())))
+    if (test)
+        skip("CRAN mis-configuration")
+
+    expect_version <-
+        function(bioc_version, R_version)
+    {
+        map <- .version_map()
+        map <- map[map$R == R_version[,1:2], ]
+        failure_message <- paste0(
+            "BiocVersion package version '", bioc_version, "' does not match ",
+            "BiocManager::.version_map() '", paste(map$Bioc, collapse="', '"),
+            "'. Check configuration."
+        )
+        expect(bioc_version %in% map$Bioc, failure_message)
+    }
+    expect_version(bioc_version, R_version)
 })

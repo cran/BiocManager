@@ -9,22 +9,34 @@
     instPkgs[too_new, c("Version", "LibPath"), drop=FALSE]
 }
 
-.valid <- function(pkgs = installed.packages(lib.loc, priority=priority),
-    lib.loc=NULL, priority="NA", type=getOption("pkgType"),
-    filters=NULL, ..., site_repository, version=BiocManager::version())
+.valid <-
+    function(pkgs = installed.packages(lib.loc, priority=priority),
+             lib.loc=NULL, priority="NA", type=getOption("pkgType"),
+             filters=NULL, ..., checkBuilt, site_repository,
+             version=BiocManager::version())
 {
     version <- .version_validate(version)
     repos <- .repositories(site_repository, version = version)
+    repos <- .repositories_filter(repos)
+
     contribUrl <- contrib.url(repos, type=type)
 
-    availPkgs <- available.packages(contribUrl, type=type, filters=filters)
+    available <- out_of_date <- too_new <- character()
+    result <- FALSE
+    if (length(repos)) {
+        available <- .inet_available.packages(
+            contribUrl, type=type, filters=filters
+        )
 
-    out_of_date <- old.packages(lib.loc, repos=repos, instPkgs=pkgs,
-        available=availPkgs, checkBuilt=TRUE, type=type)
+        out_of_date <- .inet_old.packages(
+            lib.loc, repos=repos, instPkgs=pkgs,
+            available=available, checkBuilt=checkBuilt, type=type
+        )
 
-    too_new <- .valid_pkgs_too_new(pkgs, availPkgs)
+        too_new <- .valid_pkgs_too_new(pkgs, available)
 
-    result <- !nrow(too_new) && is.null(out_of_date)
+        result <- !nrow(too_new) && is.null(out_of_date)
+    }
 
     if (!result) {
         result <- structure(
@@ -70,6 +82,9 @@
 #'     validity against; see `\link{available.packages}()`.
 #' @param \dots Additional arguments, passed to
 #'     `BiocManager::\link{install}()` when `fix=TRUE`.
+#' @param checkBuilt `logical(1)`. If `TRUE` a package built under an
+#'     earlier major.minor version of R (e.g., 3.4) is considered to
+#'     be old.
 #' @param site_repository `character(1)`. See `?install`.
 #' @return `biocValid` list object with elements `too_new` and
 #'     `out_of_date` containing `data.frame`s with packages and their
@@ -86,8 +101,12 @@
 valid <-
     function(pkgs = installed.packages(lib.loc, priority=priority),
              lib.loc=NULL, priority="NA", type=getOption("pkgType"),
-             filters=NULL, ..., site_repository = character())
+             filters=NULL, ..., checkBuilt = FALSE,
+             site_repository = character())
 {
+    stopifnot(
+        is.logical(checkBuilt), length(checkBuilt) == 1L, !is.na(checkBuilt)
+    )
     if (!is.matrix(pkgs)) {
         if (is.character(pkgs)) {
             pkgs <- installed.packages(pkgs, lib.loc=lib.loc)
@@ -100,7 +119,7 @@ valid <-
     }
     result <- .valid(
         pkgs, lib.loc, priority, type, filters, ...,
-        site_repository = site_repository
+        checkBuilt = checkBuilt, site_repository = site_repository
     )
     if (!isTRUE(result)) {
         out_of_date <- result$out_of_date
