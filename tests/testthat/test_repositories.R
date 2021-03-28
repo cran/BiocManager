@@ -4,6 +4,8 @@ test_that("repositories() returns all repos", {
     .skip_if_misconfigured()
     skip_if_offline()
     allOS <- c("BioCsoft", "CRAN", "BioCann", "BioCexp", "BioCworkflows")
+    if (version() >= "3.12")
+        allOS <- c(allOS, "BioCbooks")
     expect_true(all(allOS %in% names(repositories())))
 })
 
@@ -48,6 +50,7 @@ test_that("repositories(version = 'devel') works", {
 })
 
 test_that("repositories helper replaces correct URL", {
+    .skip_if_misconfigured()
     default_repos <- c(CRAN = "https://cran.rstudio.com")
 
     ## https://github.com/Bioconductor/BiocManager/issues/17
@@ -57,28 +60,44 @@ test_that("repositories helper replaces correct URL", {
     })
 
     ## works as advertised
-    repos <- c(CRAN = "@CRAN@")         # provide default repo
+    repos <- c(CRAN = "@CRAN@")
     withr::with_options(list(repos = repos), {
         expect_equal(.repositories_base(), default_repos)
     })
 
-    repos <-                            # update CRAN-named repo with mran URL
-        c(CRAN = "https://mran.microsoft.com/snapshot/2017-05-01")
-    withr::with_options(list(repos = repos), {
-        expect_equal(.repositories_base(), default_repos)
-    })
+    ## DO NOT update CRAN repo
+    repos <- c(CRAN = "https://mran.microsoft.com/snapshot/2017-05-01")
+    withr::with_options(list(
+               repos = repos
+           ), {
+               expect_message(.repositories_base())
+               expect_equal(.repositories_base(), repos)
+               expect_message(repositories(), "'getOption\\(\"repos\"\\)'")
+           })
 
-    repos <-                            # DO NOT update non-CRAN mran
-        c(FOO = "https://mran.microsoft.com/snapshot/2017-05-01")
-    withr::with_options(list(repos = repos), {
-        expect_equal(.repositories_base(), repos)
-    })
+    ## ...unless BiocManager.check_repositories == TRUE
+    withr::with_options(list(
+               repos = repos,
+               BiocManager.check_repositories = FALSE
+           ), {
+               expect_equal(.repositories_base(), repos)
+           })
 
-    repos <-                            # DO NOT update non-mran CRAN
-        c(CRAN = "http://cran.cnr.Berkeley.edu")
-    withr::with_options(list(repos = repos), {
-        expect_equal(.repositories_base(), repos)
-    })
+    ## DO NOT update other repositories...
+    withr::with_options(list(
+               repos = c(BioCsoft = "foo.bar")
+           ), {
+               expect_message(.repositories_base())
+           })
+
+    ## ...unless BiocManager.check_repositories == FALSE
+    repos <- c(BioCsoft = "foo.bar")
+    withr::with_options(list(           # other renameing
+               repos = repos,
+               BiocManager.check_repositories = FALSE
+           ), {
+               expect_equal(.repositories_base(), repos)
+           })
 
     ## edge cases?
     repos <- character()                # no repositories
@@ -87,7 +106,29 @@ test_that("repositories helper replaces correct URL", {
     })
 
     repos <- "@CRAN@"                   # unnamed
-    withr::with_options(list(repos = repos), {
-        expect_equal(.repositories_base(), unname(default_repos))
-    })
+    withr::with_options(list(
+               repos = repos
+           ), {
+               expect_equal(.repositories_base(), unname(default_repos))
+           })
+})
+
+test_that("'.repositories_filter()' works", {
+    skip_on_cran()
+    skip_if_offline("bioconductor.org")
+    repos0 <- BiocManager::repositories()
+    expect_equal(.repositories_filter(repos0), repos0)
+    repos  <- c(repos0, "https://bioconductor.org")
+    expect_equal(.repositories_filter(repos), repos0)
+})
+
+test_that("'.repositories_base()' respects BiocManager.snapshot", {
+    withr::with_options(
+               list(BiocManager.snapshot = "FOO"),
+               expect_error(.repositories_base(), "BiocManager.snapshot")
+           )
+    withr::with_options(
+               list(BiocManager.snapshot = c("RSPM", "CRAN")),
+               expect_error(.repositories_base(), "BiocManager.snapshot")
+           )
 })

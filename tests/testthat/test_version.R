@@ -32,6 +32,7 @@ test_that(".version_validate() validates version", {
         .version_validate("100.1"),
         "unknown Bioconductor version '100.1'; .*"
     )
+
 })
 
 test_that(".version_recommend() recommends update", {
@@ -101,6 +102,39 @@ test_that(".version_validity('devel') works", {
     }
 })
 
+test_that(".version_validity(...) works", {
+    .skip_if_misconfigured()
+    skip_if_offline()
+
+    .version_validity <- BiocManager:::.version_validity
+
+    .get_R_ver = function(ver = "4.3.0") {
+        rver <- package_version(ver)
+        class(rver) <- c("R_system_version", class(rver))
+        rver
+    }
+
+    .ver_map <- data.frame(
+        Bioc = package_version(list("4.0", "4.1", "4.1")),
+        R = package_version(list("4.3", "4.4", "4.5")),
+        BiocStatus = c("release", "devel", "future")
+    )
+
+    expect_true(
+        .version_validity("4.0", .ver_map, .get_R_ver())
+    )
+
+    expect_match(
+        .version_validity("4.1", .ver_map, .get_R_ver()),
+        "BiocManager::install"
+    )
+
+    expect_match(
+        .version_validity("4.1", .ver_map, .get_R_ver("4.5.0")),
+        "R version is too.*new"
+    )
+})
+
 test_that(".version_validity() and BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS work",{
     .skip_if_BiocVersion_not_available()
     withr::with_options(list(BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS=FALSE), {
@@ -121,6 +155,30 @@ test_that(".version_validate() and BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS work",{
     })
 })
 
+
+test_that(".version_map() and BIOCONDUCTOR_CONFIG_FILE work", {
+    config <- tempfile(fileext = ".yaml")
+    file.create(config)
+    expect_true(
+        !length(
+            .version_map_get_online_config(config)
+        )
+    )
+    expect_true(
+        is.character(
+            .version_map_get_online_config(config)
+        )
+    )
+    expect_warning(
+            .version_map_get_online_config("./fake/address/path/file.yaml")
+    )
+    skip_if_offline()
+    expect_true(
+        is.data.frame(
+            .version_map_get_online("https://bioconductor.org/config.yaml")
+        )
+    )
+})
 
 test_that(".version_map_get() and BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS work",{
     withr::with_options(list(BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS=FALSE), {
@@ -175,4 +233,40 @@ test_that("BiocVersion version matches with .version_map()", {
         expect(bioc_version %in% map$Bioc, failure_message)
     }
     expect_version(bioc_version, R_version)
+})
+
+test_that(".version_map_get() works with MRAN & RSPM", {
+
+    config0 <- c(
+        'r_ver_for_bioc_ver',
+        '  "3.9": "3.6"',
+        '  "3.10": "3.6"',
+        '  "3.11": "4.0"',
+        '  "3.12": "4.0"',
+        '  "3.13": "4.1"'
+    )
+    writeLines(config0, config <- tempfile())
+    map <- .version_map_get(config)
+    expect_identical(dim(map), c(6L, 5L))
+    expect_true(all(c("RSPM", "MRAN") %in% names(map)))
+    expect_true(all(is.na(map[["RSPM"]])))
+    expect_true(all(is.na(map[["MRAN"]])))
+
+    config1 <- c(
+        config0,
+        'rspm_ver_for_bioc_ver',
+        '  "3.10": 04/27/2020"',
+        '  "3.11": "10/28/2020"',
+        'mran_ver_for_bioc_ver',
+        '  "3.10": "04/27/2020"',
+        '  "3.11": "10/28/2020"',
+        collapse = "\n"
+    )
+    writeLines(config1, config <- tempfile())
+    map <- .version_map_get(config)
+    expect_identical(dim(map), c(6L, 5L))
+    expect_true(all(c("RSPM", "MRAN") %in% names(map)))
+    expect_identical(sum(is.na(map[["RSPM"]])), 4L)
+    expect_identical(sum(is.na(map[["MRAN"]])), 4L)
+
 })

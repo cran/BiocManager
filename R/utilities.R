@@ -25,16 +25,25 @@
 .url_exists <-
     function(url)
 {
-    identical(nchar(.inet_readChar(url, 1L)), 1L)
+    suppressWarnings(tryCatch({
+        identical(nchar(.inet_readChar(url, 1L)), 1L)
+    }, error = function(...) {
+        FALSE
+    }))
 }
 
 .msg <-
-    function(fmt, ..., width=getOption("width"), wrap. = TRUE)
+    function(
+        fmt, ...,
+        width=getOption("width"), indent = 0, exdent = 2, wrap. = TRUE
+    )
     ## Use this helper to format all error / warning / message text
 {
     txt <- sprintf(fmt, ...)
     if (wrap.) {
-        txt <- strwrap(sprintf(fmt, ...), width=width, exdent=2)
+        txt <- strwrap(
+            sprintf(fmt, ...), width=width, indent = indent, exdent=exdent
+        )
         paste(txt, collapse="\n")
     } else {
         txt
@@ -42,8 +51,9 @@
 }
 
 .message <-
-    function(..., domain = NULL, appendLF=TRUE)
+    function(..., call. = FALSE, domain = NULL, appendLF=TRUE)
 {
+    ## call. = FALSE provides compatibility with .stop(), but is ignored
     message(.msg(...), domain = NULL, appendLF=appendLF)
     invisible(TRUE)
 }
@@ -78,4 +88,35 @@ isRelease <-
     function()
 {
     version() == .version_bioc("release")
+}
+
+## testthat helper functions
+
+.skip_if_misconfigured <-
+    function()
+{
+    if (!"BiocVersion" %in% rownames(installed.packages()))
+        return(NULL)
+
+    R_version <- getRversion()
+    bioc_version <- packageVersion("BiocVersion")[, 1:2]
+
+    test_ver <- tryCatch({
+        .version_validity(bioc_version)
+    }, error = function(err) {
+        conditionMessage(err)
+    })
+
+    if (!isTRUE(test_ver)) {
+        msg <- sprintf("mis-configuration, R %s, Bioc %s, Reason %s",
+            R_version, bioc_version, test_ver)
+        testthat::skip(msg)
+    }
+}
+
+.skip_if_BiocVersion_not_available <-
+    function()
+{
+    if (!"BiocVersion" %in% rownames(installed.packages()))
+        testthat::skip("BiocVersion not installed")
 }

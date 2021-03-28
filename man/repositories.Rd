@@ -2,10 +2,11 @@
 % Please edit documentation in R/repositories.R
 \name{repositories}
 \alias{repositories}
+\alias{BiocManager.snapshot}
+\alias{BiocManager.check_repositories}
 \title{Display current Bioconductor and CRAN repositories.}
 \usage{
-repositories(site_repository = character(),
-  version = BiocManager::version())
+repositories(site_repository = character(), version = BiocManager::version())
 }
 \arguments{
 \item{site_repository}{(Optional) \code{character(1)} representing an
@@ -22,9 +23,62 @@ repositories are required.}
 Named \code{character()} of repositories.
 }
 \description{
-\code{repositories()} reports the URLs from which to install
-\emph{Bioconductor} and CRAN packages. It is used by
+\code{repositories()} reports the URLs from which to
+install \emph{Bioconductor} and CRAN packages. It is used by
 \code{BiocManager::install()} and other functions.
+}
+\details{
+\code{repositories()} returns the appropriate software package
+repositories for your version of \emph{Bioconductor}.
+
+\emph{Bioconductor} has a 'release' and a 'devel' semi-annual release
+cycle. Packages within a release have been tested against each
+other and the current version of packages on CRAN. \emph{Bioconductor}
+best practice is to use packages from the same release, and from
+the appropriate CRAN repository.
+
+CRAN packages for out-of-date \emph{Bioconductor} installations can be
+installed from historical 'snapshots' consistent with the last date
+the Bioconductor version was current.  This behavior can be specified with
+\code{BiocManager.snapshot} For example, \emph{Bioconductor} version 3.11 was current
+until October 28, 2020; CRAN packages are therefore installed from
+a snapshot created on 2020-10-28. By default, the snapshots are
+from 'MRAN', the \href{https://mran.microsoft.com/timemachine}{Microsoft R Archive Network}. Use
+\code{options(BiocManager.snapshot = "RSPM")} to instead use the
+\href{https://packagemanager.rstudio.com/client/#/repos/2/overview}{RStudio Package Manager}, or \code{options(BiocManager.snapshot = "CRAN")} to use the current CRAN repository (i.e., disabling the
+snapshot feature).
+
+It may be desirable to specify different default repositories,
+especially CRAN, for intentionally out-of-date \emph{Bioconductor}
+releases (e.g., to support reproducible research). Use the approach
+provided by base \emph{R} to specify alternative repositories, e.g.,
+\code{options(repos = c(CRAN = "https://mran.microsoft.com/snapshot/2020-02-08"))}. This is
+supported, but generates an error because specification of an
+inappropriate CRAN repository (one providing packages not
+consistent with the dates of the \emph{Bioconductor} release) results in
+use of CRAN packages not consistent with \emph{Bioconductor} best
+practices.
+
+If alternative default repositories are known to provide
+appropriate versions of CRAN or \emph{Bioconductor} packages, the warning
+may be silenced (displayed as a message) with
+\code{options(BiocManager.check_repositories = FALSE)}. A message is
+still printed, to serve as a reminder when debugging problems
+related to incompatible package installation.
+
+The intended use of \verb{site_repository =} is to enable installation of
+packages not available in the default repositories, e.g., packages
+internal to an organization and not yet publicly available. A
+secondary use might provide alternative versions (e.g., compiled
+binaries) of packages available in the default repositories. Note
+that \emph{R}'s standard rules of package selection apply, so the most
+recent version of candidate packages is selected independent of the
+location of the repository in the vector returned by \code{repositories()}.
+
+For greater flexiblity in installing packages while still adhering
+as much as possible to \emph{Bioconductor} best practices, use
+\code{repositories()} as a basis for constructing the \verb{repos =} argument
+to \code{install.packages()} and related functions.
 }
 \examples{
 BiocManager::repositories()
@@ -34,16 +88,16 @@ BiocManager::repositories(version="3.8")
 
 }
 \seealso{
-\code{BiocManager::\link{install}()} Installs or updates Bioconductor,
+\verb{BiocManager::\link{install}()} Installs or updates Bioconductor,
 CRAN, and GitHub packages.
 
-\code{\link{chooseBioCmirror}()} choose an alternative Bioconductor
+\verb{\link{chooseBioCmirror}()} choose an alternative Bioconductor
 mirror; not usually necessary.
 
-\code{\link{chooseCRANmirror}()} choose an alternative CRAN mirror; not
+\verb{\link{chooseCRANmirror}()} choose an alternative CRAN mirror; not
 usually necessary.
 
-\code{\link{setRepositories}()} Select additional repositories for
+\verb{\link{setRepositories}()} Select additional repositories for
 searching.
 }
 \keyword{environment}

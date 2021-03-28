@@ -1,3 +1,37 @@
+CHANGES IN VERSION 1.30.12
+-------------------------
+
+NEW FEATURES
+
+    o 'BIOCONDUCTOR_CONFIG_FILE' option allows users to provide an offline
+      and local configuration file (config.yaml) for version validation.
+
+    o Bioconductor 'BioCbooks' repository now available in Bioconductor
+      versions >= "3.12"
+
+USER VISIBLE CHANGES
+
+    o Enable use of historical snapshots ('MRAN' or 'RSPM' via
+      `options(BiocManager.snapshots=)`) to install CRAN packages for
+      out-of-date Bioconductor versions.
+
+    o Respect `options(repos = c(CRAN = "..."))`. See
+      https://github.com/Bioconductor/BiocManager/issues/69
+
+BUG FIXES
+
+    o Increase timeout from 1 to 5 minutes (300 seconds) to make
+      download of large packages more robust.
+
+CHANGES IN VERSION 1.30.10
+-------------------------
+
+MINOR CHANGES
+
+    o Restore startup message with recommended version
+
+    o Update mis-configuration skip in tests
+
 CHANGES IN VERSION 1.30.9
 -------------------------
 

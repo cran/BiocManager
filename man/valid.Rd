@@ -5,32 +5,38 @@
 \alias{print.biocValid}
 \title{Validate installed package versions against correct versions.}
 \usage{
-valid(pkgs = installed.packages(lib.loc, priority = priority),
-  lib.loc = NULL, priority = "NA", type = getOption("pkgType"),
-  filters = NULL, ..., checkBuilt = FALSE,
-  site_repository = character())
+valid(
+  pkgs = installed.packages(lib.loc, priority = priority),
+  lib.loc = NULL,
+  priority = "NA",
+  type = getOption("pkgType"),
+  filters = NULL,
+  ...,
+  checkBuilt = FALSE,
+  site_repository = character()
+)
 
 \method{print}{biocValid}(x, ...)
 }
 \arguments{
 \item{pkgs}{A character() vector of package names for checking, or
-a matrix as returned by \code{\link{installed.packages}}.}
+a matrix as returned by \verb{\link{installed.packages}}.}
 
 \item{lib.loc}{A character() vector of library location(s) of
-packages to be validated; see \code{\link{installed.packages}()}.}
+packages to be validated; see \verb{\link{installed.packages}()}.}
 
 \item{priority}{character(1) Check validity of all, "base", or
-"recommended" packages; see \code{\link{installed.packages}()}.}
+"recommended" packages; see \verb{\link{installed.packages}()}.}
 
 \item{type}{character(1) The type of available package (e.g.,
 binary, source) to check validity against; see
-\code{\link{available.packages}()}.}
+\verb{\link{available.packages}()}.}
 
 \item{filters}{character(1) Filter available packages to check
-validity against; see \code{\link{available.packages}()}.}
+validity against; see \verb{\link{available.packages}()}.}
 
 \item{\dots}{Additional arguments, passed to
-\code{BiocManager::\link{install}()} when \code{fix=TRUE}.}
+\verb{BiocManager::\link{install}()} when \code{fix=TRUE}.}
 
 \item{checkBuilt}{\code{logical(1)}. If \code{TRUE} a package built under an
 earlier major.minor version of R (e.g., 3.4) is considered to
@@ -44,7 +50,9 @@ be old.}
 \code{biocValid} list object with elements \code{too_new} and
 \code{out_of_date} containing \code{data.frame}s with packages and their
 installed locations that are too new or out-of-date for the
-current version of \emph{Bioconductor}.
+current version of \emph{Bioconductor}. When internet access
+is unavailable, an empty 'biocValid' list is returned. If all
+packages ('pkgs') are up to date, then TRUE is returned.
 
 `print()` is invoked for its side effect.
 }
@@ -73,7 +81,7 @@ this in the future.
 BiocManager::valid()
 }
 \seealso{
-\code{BiocManager::\link{install}()} to update installed
+\verb{BiocManager::\link{install}()} to update installed
 packages.
 }
 \author{

@@ -40,11 +40,26 @@
         status[status] <- file.access(ulibs[status], 2L) == 0
 
     status <- status[match(libs, ulibs)]
-    if (!all(status))
-        .message(
-            "Installation path not writeable, unable to update packages: %s",
-            paste(pkgs[!status, "Package"], collapse=", ")
+    if (!all(status)) {
+        failed_pkgs <- pkgs[!status, "Package"]
+        failed_lib <- pkgs[!status, "LibPath"]
+        failed <- split(failed_pkgs, failed_lib)
+        detail <- paste(
+            mapply(function(lib, pkg) {
+                paste0(
+                    "  path: ", lib, "\n",
+                    "  packages:\n",
+                    .msg(paste(pkg, collapse = ", "), indent = 4, exdent = 4)
+                )
+            }, names(failed), unname(failed), USE.NAMES = FALSE),
+            collapse = "\n"
         )
+        message(
+            .msg("Installation paths not writeable, unable to update packages"),
+            "\n",
+            detail
+        )
+    }
 
     pkgs[status,, drop=FALSE]
 }
@@ -72,7 +87,7 @@
             "%s\n    %s\n%s",
             "package 'remotes' not installed in library path(s)",
             paste(lib.loc, collapse="\n    "),
-            "install with 'install(\"remotes\")'",
+            "install with 'BiocManager::install(\"remotes\")'",
             call. = FALSE,
             wrap. = FALSE
         )
@@ -198,7 +213,7 @@
     }
 
     .inet_update.packages(
-        lib.loc, repos, oldPkgs = old_pkgs, ask = ask, instlib = instlib
+        lib.loc, repos, oldPkgs = old_pkgs, ask = ask, instlib = instlib, ...
     )
 }
 
@@ -245,6 +260,9 @@
 #' \pkg{remotes} package functions `\link[remotes]{install_github}()`
 #' and `remotes:::install()`. A typical use is to build vignettes, via
 #' `dependencies=TRUE, build_vignettes=TRUE`.
+#'
+#' See `?repositories` for additional detail on customizing where
+#' BiocManager searches for package installation.
 #'
 #' \env{BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS} is an environment
 #' variable or global `options()` which, when set to `FALSE`, avoids

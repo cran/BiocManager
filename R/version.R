@@ -19,7 +19,9 @@
     BiocStatus = factor(
         factor(),
         levels = c("out-of-date", "release", "devel", "future")
-    )
+    ),
+    RPSM = character(),
+    MRAN = character()
 )
 
 .version_sentinel <-
@@ -87,6 +89,23 @@ format.version_sentinel <-
     txt
 }
 
+.version_map_config_element <-
+    function(txt, tag)
+{
+    grps <- grep("^[^[:blank:]]", txt)
+    start <- match(grep(tag, txt), grps)
+    if (!length(start))
+        return(setNames(character(), character()))
+    end <- ifelse(length(grps) < start + 1L, length(txt), grps[start + 1] - 1L)
+    map <- txt[seq(grps[start] + 1, end)]
+    map <- trimws(gsub("\"", "", sub(" #.*", "", map)))
+
+    pattern <- "(.*): (.*)"
+    key <- sub(pattern, "\\1", map)
+    value <- sub(pattern, "\\2", map)
+    setNames(value, key)
+}
+
 .version_map_get_online <-
     function(config)
 {
@@ -104,14 +123,12 @@ format.version_sentinel <-
     if (inherits(txt, "error"))
         return(.VERSION_MAP_SENTINEL)
 
-    grps <- grep("^[^[:blank:]]", txt)
-    start <- match(grep("r_ver_for_bioc_ver", txt), grps)
-    map <- txt[seq(grps[start] + 1, grps[start + 1] - 1)]
-    map <- trimws(gsub("\"", "", sub(" #.*", "", map)))
+    bioc_r_map <- .version_map_config_element(txt, "r_ver_for_bioc_ver")
+    bioc <- package_version(names(bioc_r_map))
+    r <- package_version(unname(bioc_r_map))
 
-    pattern <- "(.*): (.*)"
-    bioc <- package_version(sub(pattern, "\\1", map))
-    r <- package_version(sub(pattern, "\\2", map))
+    bioc_rspm_map <- .version_map_config_element(txt, "rspm_ver_for_bioc_ver")
+    bioc_mran_map <- .version_map_config_element(txt, "mran_ver_for_bioc_ver")
 
     pattern <- "^release_version: \"(.*)\""
     release <- package_version(
@@ -143,8 +160,10 @@ format.version_sentinel <-
         BiocStatus = factor(
             status,
             levels = c("out-of-date", "release", "devel", "future")
-        )
-    ))
+        ),
+        RSPM = unname(bioc_rspm_map[as.character(bioc)]),
+        MRAN = unname(bioc_mran_map[as.character(bioc)])
+   ))
 }
 
 .version_map_get_offline <-
@@ -164,7 +183,9 @@ format.version_sentinel <-
         BiocStatus = factor(
             NA,
             levels = c("out-of-date", "release", "devel", "future")
-        )
+        ),
+        RSPM = NA_character_,
+        MRAN = NA_character_
     ))
 }
 
@@ -174,7 +195,7 @@ format.version_sentinel <-
     if (!.version_validity_online_check())
         .version_map_get_offline()
     else {
-        if (is.null(config))
+        if (is.null(config) || !nchar(config))
             config <- "https://bioconductor.org/config.yaml"
         .version_map_get_online(config)
     }
@@ -183,14 +204,30 @@ format.version_sentinel <-
 .version_map <- local({
     version_map <- .VERSION_MAP_SENTINEL
     function() {
+        config <- Sys.getenv("BIOCONDUCTOR_CONFIG_FILE")
+        config <- getOption("BIOCONDUCTOR_CONFIG_FILE", config)
         if (identical(version_map, .VERSION_MAP_SENTINEL))
-            version_map <<- .version_map_get()
+            version_map <<- .version_map_get(config)
         version_map
     }
 })
 
+.version_field <-
+    function(field)
+{
+    map <- .version_map()
+    if (identical(map, .VERSION_MAP_SENTINEL))
+        return(NA)
+    idx <- match(version(), map[["Bioc"]])
+    map[idx, field]
+}
+
+.get_R_version <- function()
+    getRversion()
+
+
 .version_validity <-
-    function(version)
+    function(version, map = .version_map(), r_version = .get_R_version())
 {
     if (identical(version, "devel"))
         version <- .version_bioc("devel")
@@ -204,7 +241,6 @@ format.version_sentinel <-
             "version '%s' must have two components, e.g., '3.7'", version
         ))
 
-    map <- .version_map()
     if (identical(map, .VERSION_MAP_SENTINEL))
         return(.VERSION_MAP_UNABLE_TO_VALIDATE)
 
@@ -213,11 +249,23 @@ format.version_sentinel <-
             "unknown Bioconductor version '%s'; %s", version, .VERSION_HELP
         ))
 
-    required <- map$R[map$Bioc == version]
-    if (!getRversion()[, 1:2] %in% required) {
-        return(sprintf(
-            "Bioconductor version '%s' requires R version '%s'; %s",
-            version, head(required, 1), .VERSION_HELP
+    required <- map$R[map$Bioc == version & map$BiocStatus != "future"]
+    r_version <- r_version[, 1:2]
+    if (!r_version %in% required) {
+        rec <- map[map$R == r_version, , drop = FALSE]
+        rec_fun <- ifelse("devel" %in% rec$BiocStatus, head, tail)
+
+        rec_msg <- if ("future" %in% rec$BiocStatus)
+            "R version is too new"
+        else
+            sprintf(
+                "use `BiocManager::install(version = '%s')` with R version %s",
+                rec_fun(rec$Bioc, 1), r_version
+            )
+
+        return(.msg(
+            "Bioconductor version '%s' requires R version '%s'; %s; %s",
+            version, head(required, 1), rec_msg, .VERSION_HELP
         ))
     }
 

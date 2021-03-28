@@ -116,10 +116,7 @@ test_that("unwriteable packages are not considered", {
     expect_identical(pkgs, .filter(pkgs, p0))
     expect_identical(pkgs0, .filter(pkgs, p1))
 
-    msg <- tryCatch(.filter(pkgs, NULL), message=conditionMessage)
-    expect_identical(
-        "Installation path not writeable, unable to update packages: Bar\n",
-        msg)
+    expect_message(.filter(pkgs, NULL), "^Installation paths not writeable")
 
     if (.Platform$OS.type == "windows")
         ## how to create a read-only directory?
@@ -160,8 +157,7 @@ test_that("packages can be written", {
 context("install(version =, ask=...) works")
 
 test_that(".install_ask_up_or_down_grade() works non-interactively", {
-    if (interactive())
-        return(TRUE)
+    skip_if(interactive())
     expect_equal(
         FALSE,
         .install_ask_up_or_down_grade("xx", npkgs = 1L, cmp = 1L, ask = TRUE)
@@ -178,4 +174,31 @@ test_that("install() fails with different version (non-interactive)", {
     version <-
         package_version(paste(version()$major, version()$minor + incr, sep="."))
     expect_error(install(version = version))
+})
+
+test_that("install() without package names passes ... to install.packages", {
+    .skip_if_misconfigured()
+    object <- FALSE
+    with_mock(
+        available.packages = function(...) {
+            cbind(
+                Package = "BiocGenerics", Version = "0.33.0",
+                LibPath = .libPaths()[1]
+            )
+        },
+        old.packages = function(...) {
+            ## claim that BiocGenerics is out-of-date
+            cbind(
+                Package = "BiocGenerics", Version = "0.32.0",
+                LibPath = .libPaths()[1]
+            )
+        },
+        install.packages = function(pkgs, ..., INSTALL_opts) {
+            object <<-
+                identical(pkgs, c(Package = "BiocGenerics")) &&
+                identical(INSTALL_opts, "--build")
+        },
+        install(ask = FALSE, INSTALL_opts = "--build")
+    )
+    expect_true(object)
 })
