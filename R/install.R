@@ -126,8 +126,7 @@
 }
 
 .install_repos <-
-    function(pkgs, old_pkgs, instPkgs, lib, repos, type = getOption("pkgType"),
-             force, ...)
+    function(pkgs, old_pkgs, instPkgs, lib, repos, force, ...)
 {
     doing <- .install_filter_up_to_date(
         pkgs = pkgs, instPkgs = instPkgs, old_pkgs = old_pkgs, force = force
@@ -245,7 +244,7 @@
 }
 
 .install_updated_version <-
-    function(valid, update, repos, ...)
+    function(valid, update, old_pkgs, instPkgs, repos, ...)
 {
     if (isTRUE(valid))
         return(valid)
@@ -255,7 +254,7 @@
     if (is.null(pkgs) || !update)
         return(pkgs)
 
-    .install(pkgs, repos, ...)
+    .install(pkgs, old_pkgs, instPkgs, repos, ...)
     pkgs
 }
 
@@ -429,7 +428,10 @@ install <-
     if (update && cmp == 0L) {
         .install_update(repos, ask, checkBuilt = checkBuilt, ...)
     } else if (cmp != 0L) {
-        .install_updated_version(valist, update, repos, ...)
+        .install_updated_version(
+            valist, update, vout[["out_of_date"]], inst, repos, force = force,
+            ...
+        )
     }
 
     invisible(pkgs)
