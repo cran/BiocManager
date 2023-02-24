@@ -193,14 +193,14 @@
 
 .install <-
     function(pkgs, old_pkgs, instPkgs, repos, lib.loc=NULL, lib=.libPaths()[1],
-        checkBuilt, update, ask, force, ...)
+        update, ask, force, ...)
 {
     requireNamespace("utils", quietly=TRUE) ||
         .stop("failed to load package 'utils'")
 
     todo <- .install_repos(
         pkgs, old_pkgs, instPkgs = instPkgs, lib = lib, repos = repos,
-        checkBuilt = checkBuilt, force = force, ...
+        force = force, ...
     )
     todo <- .install_github(
         todo, lib = lib, lib.loc = lib.loc, repos = repos,
@@ -249,7 +249,7 @@
 }
 
 .install_updated_version <-
-    function(valid, update, old_pkgs, instPkgs, repos, force, ...)
+    function(valid, update, old_pkgs, instPkgs, repos, ask, force, ...)
 {
     if (isTRUE(valid))
         return(valid)
@@ -259,7 +259,10 @@
     if (is.null(pkgs) || !update)
         return(pkgs)
 
-    .install(pkgs, old_pkgs, instPkgs, repos, force = force, ...)
+    .install(
+        pkgs, old_pkgs, instPkgs, repos, update = update,
+        ask = ask, force = force, ...
+    )
     pkgs
 }
 
@@ -397,7 +400,7 @@ install <-
 
     cmp <- .version_compare(version, version())
     action <- if (cmp < 0) "Downgrade" else "Upgrade"
-    repos <- .repositories(site_repository, version = version)
+    repos <- .repositories(site_repository, version = version, ...)
 
     vout <- .valid_out_of_date_pkgs(pkgs = inst,
         repos = repos, ..., checkBuilt = checkBuilt,
@@ -428,14 +431,14 @@ install <-
 
     pkgs <- .install(
         pkgs, vout[["out_of_date"]], instPkgs = inst, repos = repos,
-        checkBuilt = checkBuilt, update = update, ask = ask, force = force, ...
+        update = update, ask = ask, force = force, ...
     )
     if (update && cmp == 0L) {
         .install_update(repos, ask, checkBuilt = checkBuilt, ...)
     } else if (cmp != 0L) {
         .install_updated_version(
-            valist, update, vout[["out_of_date"]], inst, repos, force = force,
-            ...
+            valist, update, vout[["out_of_date"]], inst, repos, ask = ask,
+            force = force, ...
         )
     }
 
