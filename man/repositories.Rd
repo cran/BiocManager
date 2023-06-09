@@ -2,7 +2,6 @@
 % Please edit documentation in R/repositories.R
 \name{repositories}
 \alias{repositories}
-\alias{BiocManager.snapshot}
 \alias{BiocManager.check_repositories}
 \alias{containerRepository}
 \alias{BINARY_BASE_URL}
@@ -61,28 +60,6 @@ other and the current version of packages on CRAN. \emph{Bioconductor}
 best practice is to use packages from the same release, and from
 the appropriate CRAN repository.
 
-CRAN packages for out-of-date \emph{Bioconductor} installations can be
-installed from historical 'snapshots' consistent with the last date
-the Bioconductor version was current.  This behavior can be specified with
-\code{BiocManager.snapshot} For example, \emph{Bioconductor} version 3.11 was current
-until October 28, 2020; CRAN packages are therefore installed from
-a snapshot created on 2020-10-28. By default, the snapshots are
-from 'MRAN', the \href{https://mran.microsoft.com/timemachine}{Microsoft R Archive Network}. Use
-\code{options(BiocManager.snapshot = "RSPM")} to instead use the
-\href{https://packagemanager.rstudio.com/client/#/repos/2/overview}{RStudio Package Manager}, or \code{options(BiocManager.snapshot = "CRAN")} to use the current CRAN repository (i.e., disabling the
-snapshot feature).
-
-It may be desirable to specify different default repositories,
-especially CRAN, for intentionally out-of-date \emph{Bioconductor}
-releases (e.g., to support reproducible research). Use the approach
-provided by base \emph{R} to specify alternative repositories, e.g.,
-\code{options(repos = c(CRAN = "https://mran.microsoft.com/snapshot/2020-02-08"))}. This is
-supported, but generates an error because specification of an
-inappropriate CRAN repository (one providing packages not
-consistent with the dates of the \emph{Bioconductor} release) results in
-use of CRAN packages not consistent with \emph{Bioconductor} best
-practices.
-
 To install binary packages on containerized versions of Bioconductor,
 a default binary package location URL is set as a package constant,
 see \code{BiocManager:::BINARY_BASE_URL}. Binary package installations
@@ -110,6 +87,9 @@ binaries) of packages available in the default repositories. Note
 that \emph{R}'s standard rules of package selection apply, so the most
 recent version of candidate packages is selected independent of the
 location of the repository in the vector returned by \code{repositories()}.
+To set a more permenanent \code{site_repository}, one can use either the
+\env{BIOCMANAGER_SITE_REPOSITORY} environment variable or the
+\code{options(BiocManager.site_repository = ...)} option.
 
 For greater flexiblity in installing packages while still adhering
 as much as possible to \emph{Bioconductor} best practices, use
@@ -134,16 +114,16 @@ containerRepository() # character(0) if not within a Bioconductor container
 
 }
 \seealso{
-\verb{BiocManager::\link{install}()} Installs or updates Bioconductor,
+\code{BiocManager::\link{install}()} Installs or updates Bioconductor,
 CRAN, and GitHub packages.
 
-\verb{\link{chooseBioCmirror}()} choose an alternative Bioconductor
+\code{\link{chooseBioCmirror}()} choose an alternative Bioconductor
 mirror; not usually necessary.
 
-\verb{\link{chooseCRANmirror}()} choose an alternative CRAN mirror; not
+\code{\link{chooseCRANmirror}()} choose an alternative CRAN mirror; not
 usually necessary.
 
-\verb{\link{setRepositories}()} Select additional repositories for
+\code{\link{setRepositories}()} Select additional repositories for
 searching.
 }
 \keyword{environment}

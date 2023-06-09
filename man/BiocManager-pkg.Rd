@@ -37,9 +37,8 @@ by code in base R.
 Options influencing package behavior (see \code{?options}, \code{?getOption})
 include:
 \itemize{
-\item \code{"repos"}, \code{"BiocManager.check_repositories"},
-\code{"BiocManager.snapshot"}: URLs of additional repositories for use
-by \code{BiocManger::install()}. See \code{?repositories}.
+\item \code{"repos"}, \code{"BiocManager.check_repositories"}: URLs of additional
+repositories for use by \code{BiocManger::install()}. See \code{?repositories}.
 \item \code{"pkgType"}: The default type of packages to be downloaded and
 installed; see \code{?install.packages}.
 \item \code{"timeout"}: The maximum time allowed for download of a single
@@ -52,6 +51,14 @@ System environment variables influencing package behavior include:
 \item \env{BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS} advanced
 configuration to avoid \emph{Bioconductor} version checks. See
 \code{?install}.
+\item \env{BIOCONDUCTOR_CONFIG_FILE} for offline use of BiocManager
+versioning functionality. See \code{?install}.
+\item \env{BIOCONDUCTOR_USE_CONTAINER_REPOSITORY} opt out of binary package
+installations. See \code{?containerRepository}.
+\item \env{BIOCMANAGER_CHECK_REPOSITORIES} silence messages regarding
+non-standard CRAN or Bioconductor repositories. See \code{?repositories}.
+\item \env{BIOCMANAGER_SITE_REPOSITORY} configure a more permanent
+\code{site_repository} input to \code{repositories()}. See \code{?repositories}.
 }
 }
 \examples{
@@ -64,12 +71,13 @@ BiocManager::version()
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://bioconductor.github.io/BiocManager/}
   \item Report bugs at \url{https://github.com/Bioconductor/BiocManager/issues}
 }
 
 }
 \author{
-\strong{Maintainer}: Marcel Ramos \email{marcel.ramos@roswellpark.org} (\href{https://orcid.org/0000-0002-3242-0582}{ORCID}) [contributor]
+\strong{Maintainer}: Marcel Ramos \email{marcel.ramos@roswellpark.org} (\href{https://orcid.org/0000-0002-3242-0582}{ORCID})
 
 Authors:
 \itemize{

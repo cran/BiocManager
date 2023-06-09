@@ -1,3 +1,24 @@
+CHANGES IN VERSION 1.30.21
+-------------------------
+
+NEW FEATURES
+
+    o Enable the use of the Bioc-devel branch on R-devel during the 'summer'
+      release cycle (@mtmorgan, #166)
+    o Allow `BIOCMANAGER_SITE_REPOSITORY` environment variable and
+      `BiocManager.site_repository` option as a more permanent option for
+      `site_repository` users (@LiNk-NY).
+    o Support for "time machine" CRAN installations has moved to BiocArchive
+      and has been removed from the package (#151, @LiNk-NY)
+
+MINOR CHANGES
+
+    o Correct links on help pages. See
+      <https://github.com/Bioconductor/BiocManager/pull/160>; thanks
+      @aitap
+    o Additional documentation provided for offline use of BiocManager in
+      `?install` and in the main vignette (#165, @mtmorgan). 
+
 CHANGES IN VERSION 1.30.20
 -------------------------
 

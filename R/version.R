@@ -32,9 +32,7 @@
     BiocStatus = factor(
         factor(),
         levels = .VERSION_TAGS
-    ),
-    RSPM = character(),
-    MRAN = character()
+    )
 )
 
 .version_sentinel <-
@@ -142,9 +140,6 @@ format.version_sentinel <-
     bioc <- package_version(names(bioc_r_map))
     r <- package_version(unname(bioc_r_map))
 
-    bioc_rspm_map <- .version_map_config_element(txt, "rspm_ver_for_bioc_ver")
-    bioc_mran_map <- .version_map_config_element(txt, "mran_ver_for_bioc_ver")
-
     pattern <- "^release_version: \"(.*)\""
     release <- package_version(
         sub(pattern, "\\1", grep(pattern, txt, value=TRUE))
@@ -175,10 +170,8 @@ format.version_sentinel <-
         BiocStatus = factor(
             status,
             levels = .VERSION_TAGS
-        ),
-        RSPM = unname(bioc_rspm_map[as.character(bioc)]),
-        MRAN = unname(bioc_mran_map[as.character(bioc)])
-   ))
+        )  
+    ))
 }
 
 .version_map_get_offline <-
@@ -196,9 +189,7 @@ format.version_sentinel <-
         BiocStatus = factor(
             NA,
             levels = status
-        ),
-        RSPM = NA_character_,
-        MRAN = NA_character_
+        )
     ))
 }
 
@@ -265,7 +256,8 @@ format.version_sentinel <-
 ## the version is invalid. It does NOT call message / warning / etc
 ## directly.
 .version_validity <-
-    function(version, map = .version_map(), r_version = .version_R_version())
+    function(version, map = .version_map(), r_version = .version_R_version(),
+             check_future = FALSE)
 {
     if (identical(version, "devel"))
         version <- .version_bioc("devel")
@@ -296,16 +288,18 @@ format.version_sentinel <-
         rec <- map[map$R == r_version, , drop = FALSE]
         one_up <- required
         one_up[, 2] <- as.integer(required[, 2]) + 1L
-        if (r_version == one_up && "future" %in% rec$BiocStatus)
-            return(sprintf(
-                "Bioconductor does not yet build and check packages for R
-                 version %s; %s",
-                r_version, .VERSION_HELP
-            ))
-        else {
+        if (r_version == one_up && "future" %in% rec$BiocStatus) {
+            if (check_future) {
+                return(sprintf(
+                    "Bioconductor does not yet build and check packages for R
+                     version %s, using unsupported Bioconductor version %s; %s",
+                    r_version, version, .VERSION_HELP
+                ))
+            }
+        } else {
             rec_fun <- ifelse("devel" %in% rec$BiocStatus, head, tail)
             rec_msg <- sprintf(
-                "use `BiocManager::install(version = '%s')` with R version %s",
+                "use `version = '%s'` with R version %s",
                 rec_fun(rec$Bioc, 1), r_version
             )
 
@@ -315,28 +309,6 @@ format.version_sentinel <-
             ))
         }
     }
-
-    TRUE
-}
-
-.version_is_not_future <-
-    function(version)
-{
-    map <- .version_map()
-    if (identical(map, .VERSION_MAP_SENTINEL))
-        return(.VERSION_MAP_UNABLE_TO_VALIDATE)
-
-    if (!all(.VERSION_TAGS %in% map$BiocStatus))
-        return(.VERSION_MAP_MISCONFIGURATION)
-
-    r_version <- getRversion()[, 1:2]
-    status <- map$BiocStatus[map$Bioc == version & map$R == r_version]
-    if (identical(status, "future"))
-        return(sprintf(
-            "Bioconductor does not yet build and check packages for R version
-             %s; %s",
-            r_version, .VERSION_HELP
-        ))
 
     TRUE
 }

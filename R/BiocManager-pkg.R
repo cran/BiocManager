@@ -38,9 +38,8 @@ NULL
 #' Options influencing package behavior (see `?options`, `?getOption`)
 #' include:
 #'
-#' - `"repos"`, `"BiocManager.check_repositories"`,
-#'   `"BiocManager.snapshot"`: URLs of additional repositories for use
-#'   by `BiocManger::install()`. See `?repositories`.
+#' - `"repos"`, `"BiocManager.check_repositories"`: URLs of additional
+#'   repositories for use by `BiocManger::install()`. See `?repositories`.
 #'
 #' - `"pkgType"`: The default type of packages to be downloaded and
 #'   installed; see `?install.packages`.
@@ -54,6 +53,18 @@ NULL
 #' - \env{BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS} advanced
 #'   configuration to avoid _Bioconductor_ version checks. See
 #'   `?install`.
+#'
+#' - \env{BIOCONDUCTOR_CONFIG_FILE} for offline use of BiocManager
+#'   versioning functionality. See `?install`.
+#'
+#' - \env{BIOCONDUCTOR_USE_CONTAINER_REPOSITORY} opt out of binary package
+#'   installations. See `?containerRepository`.
+#'
+#' - \env{BIOCMANAGER_CHECK_REPOSITORIES} silence messages regarding
+#'   non-standard CRAN or Bioconductor repositories. See `?repositories`.
+#'
+#' - \env{BIOCMANAGER_SITE_REPOSITORY} configure a more permanent
+#'   `site_repository` input to `repositories()`. See `?repositories`.
 #'
 #' @md
 #' @name BiocManager-pkg
