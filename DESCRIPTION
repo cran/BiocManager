@@ -1,7 +1,7 @@
 Package: BiocManager
 Title: Access the Bioconductor Project Package Repository
 Description: A convenient tool to install and update Bioconductor packages.
-Version: 1.30.21
+Version: 1.30.21.1
 Authors@R: c(
     person("Martin", "Morgan", email = "martin.morgan@roswellpark.org",
         role = "aut", comment = c(ORCID = "0000-0002-5874-8148")),
@@ -16,9 +16,9 @@ License: Artistic-2.0
 Encoding: UTF-8
 RoxygenNote: 7.2.3
 NeedsCompilation: no
-Packaged: 2023-06-09 22:50:17 UTC; mr148
+Packaged: 2023-07-18 12:31:51 UTC; hornik
 Author: Martin Morgan [aut] (<https://orcid.org/0000-0002-5874-8148>),
   Marcel Ramos [aut, cre] (<https://orcid.org/0000-0002-3242-0582>)
 Maintainer: Marcel Ramos <marcel.ramos@roswellpark.org>
 Repository: CRAN
-Date/Publication: 2023-06-10 00:10:02 UTC
+Date/Publication: 2023-07-18 13:49:20 UTC
