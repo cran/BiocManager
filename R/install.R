@@ -385,13 +385,13 @@ install <-
     stopifnot(
         is.character(pkgs), !anyNA(pkgs),
         .install_validate_dots(...),
-        length(site_repository) <= 1L,
-        is.character(site_repository), !any(is.na(site_repository)),
         is.logical(update), length(update) == 1L, !is.na(update),
         is.logical(ask), length(ask) == 1L, !is.na(ask),
         is.logical(checkBuilt), length(checkBuilt) == 1L, !is.na(checkBuilt),
         length(version) == 1L || inherits(version, "version_sentinel")
     )
+    site_repository <- .repositories_site_repository(site_repository)
+
     version <- .version_validate(version)
 
     inst <- installed.packages()

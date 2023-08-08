@@ -29,6 +29,53 @@ test_that("'site_repository=' inserted correctly", {
     expect_identical(c(site_repository = site_repository), repos[1])
 })
 
+test_that("site_repository is used when env var or option available", {
+    .skip_if_misconfigured()
+    expected_repository <- "https://example.com/bioc"
+    withr::with_envvar(
+        c(BIOCMANAGER_SITE_REPOSITORY = expected_repository),
+        {
+            actual_repository <- .repositories_site_repository()
+            expect_equal(actual_repository, expected_repository)
+        }
+    )
+    withr::with_envvar(
+        c(BIOCMANAGER_SITE_REPOSITORY = ""),
+        {
+            actual_repository <- .repositories_site_repository()
+            expect_equal(actual_repository, character(0L))
+        }
+    )
+    withr::with_envvar(
+        c(BIOCMANAGER_SITE_REPOSITORY = NULL),
+        {
+            actual_repository <- .repositories_site_repository()
+            expect_equal(actual_repository, character(0L))
+        }
+    )
+    withr::with_options(
+        list(BiocManager.site_repository = expected_repository),
+        {
+            actual_value <- .repositories_site_repository()
+            expect_equal(actual_value, expected_repository)
+        }
+    )
+    withr::with_options(
+        list(BiocManager.site_repository = ""),
+        {
+            actual_value <- .repositories_site_repository()
+            expect_equal(actual_value, character(0L))
+        }
+    )
+    withr::with_options(
+        list(BiocManager.site_repository = NULL),
+        {
+            actual_value <- .repositories_site_repository()
+            expect_equal(actual_value, character(0L))
+        }
+    )
+})
+
 test_that("repositories() rejects invalid versions", {
     skip_if_offline()
     expect_error(
@@ -55,62 +102,61 @@ test_that("repositories helper replaces correct URL", {
 
     ## https://github.com/Bioconductor/BiocManager/issues/17
     repos <- "http://cran.cnr.Berkeley.edu"
-    withr::with_options(list(repos = repos), {
+    withr::with_options(
+        list(repos = repos),
         expect_equal(.repositories_base(), repos)
-    })
+    )
 
     ## works as advertised
     repos <- c(CRAN = "@CRAN@")
-    withr::with_options(list(repos = repos), {
+    withr::with_options(
+        list(repos = repos),
         expect_equal(.repositories_base(), default_repos)
-    })
+    )
 
     ## DO NOT update CRAN repo
-    repos <- c(CRAN = "https://mran.microsoft.com/snapshot/2017-05-01")
-    withr::with_options(list(
-               repos = repos
-           ), {
-               expect_message(.repositories_base())
-               expect_equal(.repositories_base(), repos)
-               expect_message(repositories(), "'getOption\\(\"repos\"\\)'")
-           })
+    repos <- c(CRAN = "https://packagemanager.posit.co/")
+    withr::with_options(
+        list(repos = repos),
+        {
+            expect_message(.repositories_base())
+            expect_equal(.repositories_base(), repos)
+            expect_message(repositories(), "'getOption\\(\"repos\"\\)'")
+        }
+    )
 
     ## ...unless BiocManager.check_repositories == TRUE
-    withr::with_options(list(
-               repos = repos,
-               BiocManager.check_repositories = FALSE
-           ), {
-               expect_equal(.repositories_base(), repos)
-           })
+    withr::with_options(
+        list(repos = repos, BiocManager.check_repositories = FALSE),
+        expect_equal(.repositories_base(), repos)
+    )
 
     ## DO NOT update other repositories...
-    withr::with_options(list(
-               repos = c(BioCsoft = "foo.bar")
-           ), {
-               expect_message(.repositories_base())
-           })
+    withr::with_options(
+        list(repos = c(BioCsoft = "foo.bar")),
+        expect_message(.repositories_base())
+    )
 
     ## ...unless BiocManager.check_repositories == FALSE
     repos <- c(BioCsoft = "foo.bar")
-    withr::with_options(list(           # other renaming
-               repos = repos,
-               BiocManager.check_repositories = FALSE
-           ), {
-               expect_equal(.repositories_base(), repos)
-           })
+    # other renaming
+    withr::with_options(
+        list(repos = repos, BiocManager.check_repositories = FALSE),
+        expect_equal(.repositories_base(), repos)
+    )
 
     ## edge cases?
     repos <- character()                # no repositories
-    withr::with_options(list(repos = repos), {
+    withr::with_options(
+        list(repos = repos),
         expect_equal(.repositories_base(), repos)
-    })
+    )
 
     repos <- "@CRAN@"                   # unnamed
-    withr::with_options(list(
-               repos = repos
-           ), {
-               expect_equal(.repositories_base(), unname(default_repos))
-           })
+    withr::with_options(
+        list(repos = repos),
+        expect_equal(.repositories_base(), unname(default_repos))
+    )
 })
 
 test_that("'.repositories_filter()' works", {

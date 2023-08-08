@@ -114,6 +114,8 @@ valid <-
     stopifnot(
         is.logical(checkBuilt), length(checkBuilt) == 1L, !is.na(checkBuilt)
     )
+    site_repository <- .repositories_site_repository(site_repository)
+
     if (!is.matrix(pkgs)) {
         if (is.character(pkgs)) {
             pkgs <- installed.packages(pkgs, lib.loc=lib.loc)
