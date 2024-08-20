@@ -65,10 +65,10 @@ BiocManager::install()
 To install CRAN package versions consistent with previous releases of
 Bioconductor, use the [BiocArchive][BiocArchive] package. BiocArchive enables
 contemporary installations of CRAN packages with out-of-date _Bioconductor_
-releases using [Posit Package Manager][PPM].
+releases using [Posit Public Package Manager][P3M].
 
 [BiocArchive]: https://github.com/Bioconductor/BiocArchive
-[PPM]: https://packagemanager.posit.co/
+[P3M]: https://packagemanager.posit.co/
 
 ## Version and validity of installations
 
@@ -125,7 +125,7 @@ be addressed to the [_Bioconductor_ support site][3].
 
 ## Updating old packages
 
-The user can often get an update packages prompt similar to: 
+The user can often get an update packages prompt similar to:
 
 ```
 > BiocManager::install("AnVIL")
@@ -136,7 +136,7 @@ Old packages: 'AnnotationDbi', 'arrow', 'basilisk.utils', 'beachmat',
   'IRanges', 'limma', 'pkgbuild', 'pkgload', 'processx', 'RcppSpdlog', 'rhdf5',
   'rstudioapi', 'SingleR', 'testthat', 'usethis', 'xml2', 'KernSmooth',
   'Matrix', 'mgcv'
-Update all/some/none? [a/s/n]: 
+Update all/some/none? [a/s/n]:
 ```
 
 A decision should be made regarding updating packages. In the following section
@@ -243,6 +243,33 @@ Error: Bioconductor version '3.9' requires R version '3.6'; see
 
 A special version, `version="devel"`, allows use of _Bioconductor_
 packages that are under development.
+
+## Unsupported *R* / *Bioconductor* versions
+
+The main purpose of BiocManager is to ensure that users install the
+version of *Bioconductor* appropriate for their version of *R*. Use
+the environment variable `R_BIOC_VERSION` to install any version of
+*Bioconductor* on any version of *R*. Thus *R* version 4.3.0 and
+*Bioconductor* version 3.19 are not compatible...
+
+```
+> BiocManager::install(version = "3.19")
+Error: Bioconductor version '3.19' requires R version '4.4'; use
+  `version = '3.18'` with R version 4.3; see
+  https://bioconductor.org/install
+```
+
+...but the version can be forced with
+
+```
+> Sys.setenv(R_BIOC_VERSION="3.19")
+> BiocManager::install(version = "3.19")
+...
+Bioconductor version 3.19 (BiocManager 1.30.23), R 4.3.0 (2023-04-21)
+```
+
+**Note**. Compatibility of Bioconductor with a mismatched version of R
+is not guaranteed and support is not provided for such installations.
 
 ## Managing multiple versions {#multiple-versions}
 
