@@ -1,6 +1,6 @@
-53c32ee7e417fa0099af940848a10151 *DESCRIPTION
+f30a05a80ed2002e2eae911862c22618 *DESCRIPTION
 2bf9e76392eb34c409c623e79b3acf3c *NAMESPACE
-c012a158d8673dc565cd427d156c8423 *NEWS
+c85092b7c70fa3bb34dafa19e6edf03d *NEWS
 d2265ac3433a238dd9167b39568ea61e *R/BiocManager-package.R
 daa1a1e3494f75deb3c897e225ef5e85 *R/available.R
 8374087524998304d9867647eee2e0d1 *R/inet.R
@@ -14,7 +14,7 @@ e515215520680926c9bf829f25a680dc *README.md
 2796852dd8ac758b652687f3f92e7647 *build/vignette.rds
 29bea53ddc1f2ba8e1f7a48cba5e20df *inst/doc/BiocManager.R
 01c80f5dd0768a8993edb62fbfc6cb06 *inst/doc/BiocManager.Rmd
-bf172665349867e6f50697996f018c85 *inst/doc/BiocManager.html
+f00cd29a887324c915102acb9cdb8eda *inst/doc/BiocManager.html
 e22115149842e55c9775517d924d1907 *man/BiocManager-package.Rd
 df9adc173f50d7b4cded7189632fde4f *man/available.Rd
 50fd65f13d3643e1d69391051cdc2e53 *man/install.Rd
